@@ -98,10 +98,9 @@ type GalleyConfiguration struct {
 
 // GatewaysConfiguration defines config options for Gateways
 type GatewaysConfiguration struct {
-	Enabled       *bool                   `json:"enabled,omitempty"`
-	IngressConfig GatewayConfiguration    `json:"ingress,omitempty"`
-	EgressConfig  GatewayConfiguration    `json:"egress,omitempty"`
-	K8sIngress    K8sIngressConfiguration `json:"k8singress,omitempty"`
+	Enabled    *bool                            `json:"enabled,omitempty"`
+	Configs    map[string]*GatewayConfiguration `json:"-"` // handled by MarshalJSON
+	K8sIngress K8sIngressConfiguration          `json:"k8singress,omitempty"`
 }
 
 type GatewaySDSConfiguration struct {
@@ -546,6 +545,25 @@ type IstioList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Istio `json:"items"`
+}
+
+// MarshalJSON to handle special case of sharing the json root with a child object
+func (g GatewaysConfiguration) MarshalJSON() ([]byte, error) {
+
+	// Turn g into a map
+	type GatewaysConfiguration_ GatewaysConfiguration // prevent recursion
+	b, _ := json.Marshal(GatewaysConfiguration_(g))
+
+	var m map[string]json.RawMessage
+	_ = json.Unmarshal(b, &m)
+
+	// Add tags to the map, possibly overriding struct fields
+	for k, v := range g.Configs {
+		b, _ = json.Marshal(v)
+		m[k] = b
+	}
+
+	return json.Marshal(m)
 }
 
 func init() {

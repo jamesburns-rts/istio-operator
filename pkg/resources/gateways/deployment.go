@@ -41,7 +41,7 @@ func (r *Reconciler) deployment(gw string) runtime.Object {
 	}
 
 	var containers = make([]apiv1.Container, 0)
-	if gw == ingress && util.PointerToBool(gwConfig.SDS.Enabled) {
+	if gw != egress && util.PointerToBool(gwConfig.SDS.Enabled) {
 		containers = append(containers, apiv1.Container{
 			Name:            "ingress-sds",
 			Image:           gwConfig.SDS.Image,
@@ -170,21 +170,9 @@ func (r *Reconciler) deployment(gw string) runtime.Object {
 }
 
 func (r *Reconciler) ports(gw string) []apiv1.ContainerPort {
-	switch gw {
-	case ingress:
+	if config, ok := r.Config.Spec.Gateways.Configs[gw]; ok {
 		var ports []apiv1.ContainerPort
-		for _, port := range r.Config.Spec.Gateways.IngressConfig.Ports {
-			ports = append(ports, apiv1.ContainerPort{
-				ContainerPort: port.Port, Protocol: port.Protocol, Name: port.Name,
-			})
-		}
-		ports = append(ports, apiv1.ContainerPort{
-			ContainerPort: 15090, Protocol: apiv1.ProtocolTCP, Name: "http-envoy-prom",
-		})
-		return ports
-	case egress:
-		var ports []apiv1.ContainerPort
-		for _, port := range r.Config.Spec.Gateways.EgressConfig.Ports {
+		for _, port := range config.Ports {
 			ports = append(ports, apiv1.ContainerPort{
 				ContainerPort: port.Port, Protocol: port.Protocol, Name: port.Name,
 			})

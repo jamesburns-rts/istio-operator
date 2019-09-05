@@ -235,8 +235,21 @@ func (in *GatewaysConfiguration) DeepCopyInto(out *GatewaysConfiguration) {
 		*out = new(bool)
 		**out = **in
 	}
-	in.IngressConfig.DeepCopyInto(&out.IngressConfig)
-	in.EgressConfig.DeepCopyInto(&out.EgressConfig)
+	if in.Configs != nil {
+		in, out := &in.Configs, &out.Configs
+		*out = make(map[string]*GatewayConfiguration, len(*in))
+		for key, val := range *in {
+			var outVal *GatewayConfiguration
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				in, out := &val, &outVal
+				*out = new(GatewayConfiguration)
+				(*in).DeepCopyInto(*out)
+			}
+			(*out)[key] = outVal
+		}
+	}
 	in.K8sIngress.DeepCopyInto(&out.K8sIngress)
 	return
 }

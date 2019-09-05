@@ -55,6 +55,8 @@ const (
 	defaultInitCNILogLevel           = "info"
 	defaultImagePullPolicy           = "IfNotPresent"
 	defaultMeshExpansion             = false
+	ingress                          = "ingress"
+	egress                           = "egress"
 )
 
 var defaultResources = &apiv1.ResourceRequirements{
@@ -155,50 +157,50 @@ func SetDefaults(config *Istio) {
 	if config.Spec.Gateways.Enabled == nil {
 		config.Spec.Gateways.Enabled = util.BoolPointer(true)
 	}
-	if config.Spec.Gateways.IngressConfig.Enabled == nil {
-		config.Spec.Gateways.IngressConfig.Enabled = util.BoolPointer(true)
+	if config.Spec.Gateways.Configs == nil {
+		config.Spec.Gateways.Configs = make(map[string]*GatewayConfiguration)
 	}
-	if config.Spec.Gateways.IngressConfig.ReplicaCount == 0 {
-		config.Spec.Gateways.IngressConfig.ReplicaCount = defaultReplicaCount
+	if ingressConf := config.Spec.Gateways.Configs[ingress]; ingressConf == nil {
+		config.Spec.Gateways.Configs[ingress] = new(GatewayConfiguration)
 	}
-	if config.Spec.Gateways.IngressConfig.MinReplicas == 0 {
-		config.Spec.Gateways.IngressConfig.MinReplicas = defaultMinReplicas
+	if egressConf := config.Spec.Gateways.Configs[egress]; egressConf == nil {
+		config.Spec.Gateways.Configs[egress] = new(GatewayConfiguration)
 	}
-	if config.Spec.Gateways.IngressConfig.MaxReplicas == 0 {
-		config.Spec.Gateways.IngressConfig.MaxReplicas = defaultMaxReplicas
-	}
-	if config.Spec.Gateways.IngressConfig.SDS.Enabled == nil {
-		config.Spec.Gateways.IngressConfig.SDS.Enabled = util.BoolPointer(false)
-	}
-	if len(config.Spec.Gateways.IngressConfig.Ports) == 0 {
-		config.Spec.Gateways.IngressConfig.Ports = defaultIngressGatewayPorts
-	}
-	if config.Spec.Gateways.EgressConfig.Enabled == nil {
-		config.Spec.Gateways.EgressConfig.Enabled = util.BoolPointer(true)
-	}
-	if config.Spec.Gateways.EgressConfig.ReplicaCount == 0 {
-		config.Spec.Gateways.EgressConfig.ReplicaCount = defaultReplicaCount
-	}
-	if config.Spec.Gateways.EgressConfig.MinReplicas == 0 {
-		config.Spec.Gateways.EgressConfig.MinReplicas = defaultMinReplicas
-	}
-	if config.Spec.Gateways.EgressConfig.MaxReplicas == 0 {
-		config.Spec.Gateways.EgressConfig.MaxReplicas = defaultMaxReplicas
-	}
-	if config.Spec.Gateways.IngressConfig.ServiceType == "" {
-		config.Spec.Gateways.IngressConfig.ServiceType = defaultIngressGatewayServiceType
-	}
-	if config.Spec.Gateways.EgressConfig.ServiceType == "" {
-		config.Spec.Gateways.EgressConfig.ServiceType = defaultEgressGatewayServiceType
-	}
-	if config.Spec.Gateways.EgressConfig.SDS.Enabled == nil {
-		config.Spec.Gateways.EgressConfig.SDS.Enabled = util.BoolPointer(false)
-	}
-	if len(config.Spec.Gateways.EgressConfig.Ports) == 0 {
-		config.Spec.Gateways.EgressConfig.Ports = defaultEgressGatewayPorts
-	}
-	if config.Spec.Gateways.K8sIngress.Enabled == nil {
-		config.Spec.Gateways.K8sIngress.Enabled = util.BoolPointer(false)
+	for key, conf := range config.Spec.Gateways.Configs {
+		if conf.Enabled == nil {
+			conf.Enabled = util.BoolPointer(true)
+		}
+		if conf.ReplicaCount == 0 {
+			conf.ReplicaCount = defaultReplicaCount
+		}
+		if conf.MinReplicas == 0 {
+			conf.MinReplicas = defaultMinReplicas
+		}
+		if conf.MaxReplicas == 0 {
+			conf.MaxReplicas = defaultMaxReplicas
+		}
+		if conf.SDS.Enabled == nil {
+			conf.SDS.Enabled = util.BoolPointer(false)
+		}
+		if conf.SDS.Image == "" {
+			conf.SDS.Image = defaultSDSImage
+		}
+		if conf.ServiceType == "" {
+			switch key {
+			case egress:
+				conf.ServiceType = defaultEgressGatewayServiceType
+			default:
+				conf.ServiceType = defaultIngressGatewayServiceType
+			}
+		}
+		if len(conf.Ports) == 0 {
+			switch key {
+			case egress:
+				conf.Ports = defaultEgressGatewayPorts
+			case ingress:
+				conf.Ports = defaultIngressGatewayPorts
+			}
+		}
 	}
 	// Mixer config
 	if config.Spec.Mixer.Enabled == nil {
@@ -260,12 +262,6 @@ func SetDefaults(config *Istio) {
 	}
 	if config.Spec.NodeAgent.Image == "" {
 		config.Spec.NodeAgent.Image = defaultNodeAgentImage
-	}
-	if config.Spec.Gateways.IngressConfig.SDS.Image == "" {
-		config.Spec.Gateways.IngressConfig.SDS.Image = defaultSDSImage
-	}
-	if config.Spec.Gateways.EgressConfig.SDS.Image == "" {
-		config.Spec.Gateways.EgressConfig.SDS.Image = defaultSDSImage
 	}
 	// Proxy config
 	if config.Spec.Proxy.Image == "" {

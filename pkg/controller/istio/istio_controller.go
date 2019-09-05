@@ -285,7 +285,7 @@ func (r *ReconcileConfig) reconcile(logger logr.Logger, config *istiov1beta1.Ist
 		}
 	}
 
-	if util.PointerToBool(config.Spec.Gateways.Enabled) && util.PointerToBool(config.Spec.Gateways.IngressConfig.Enabled) {
+	if util.PointerToBool(config.Spec.Gateways.Enabled) && util.PointerToBool(config.Spec.Gateways.Configs["ingress"].Enabled) {
 		ingressGatewayAddress, err := r.getIngressGatewayAddress(config, logger)
 		if err != nil {
 			log.Info(err.Error())

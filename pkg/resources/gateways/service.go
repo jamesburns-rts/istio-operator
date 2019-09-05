@@ -17,12 +17,11 @@ limitations under the License.
 package gateways
 
 import (
+	"github.com/banzaicloud/istio-operator/pkg/resources/templates"
+	"github.com/banzaicloud/istio-operator/pkg/util"
 	apiv1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-
-	"github.com/banzaicloud/istio-operator/pkg/resources/templates"
-	"github.com/banzaicloud/istio-operator/pkg/util"
 )
 
 func (r *Reconciler) service(gw string) runtime.Object {
@@ -39,10 +38,9 @@ func (r *Reconciler) service(gw string) runtime.Object {
 }
 
 func (r *Reconciler) servicePorts(gw string) []apiv1.ServicePort {
-	switch gw {
-	case ingress:
-		ports := r.Config.Spec.Gateways.IngressConfig.Ports
-		if util.PointerToBool(r.Config.Spec.MeshExpansion) {
+	if config, ok := r.Config.Spec.Gateways.Configs[gw]; ok {
+		ports := config.Ports
+		if gw == ingress && util.PointerToBool(r.Config.Spec.MeshExpansion) {
 			ports = append(ports, []apiv1.ServicePort{
 				{Port: 15011, Protocol: apiv1.ProtocolTCP, TargetPort: intstr.FromInt(15011), Name: "tcp-pilot-grpc-tls", NodePort: 31470},
 				{Port: 15004, Protocol: apiv1.ProtocolTCP, TargetPort: intstr.FromInt(15004), Name: "tcp-mixer-grpc-tls", NodePort: 31480},
@@ -51,28 +49,20 @@ func (r *Reconciler) servicePorts(gw string) []apiv1.ServicePort {
 			}...)
 		}
 		return ports
-	case egress:
-		return r.Config.Spec.Gateways.EgressConfig.Ports
 	}
 	return []apiv1.ServicePort{}
 }
 
 func (r *Reconciler) serviceType(gw string) apiv1.ServiceType {
-	switch gw {
-	case ingress:
-		return r.Config.Spec.Gateways.IngressConfig.ServiceType
-	case egress:
-		return r.Config.Spec.Gateways.EgressConfig.ServiceType
+	if config, ok := r.Config.Spec.Gateways.Configs[gw]; ok {
+		return config.ServiceType
 	}
 	return ""
 }
 
 func (r *Reconciler) loadBalancerIP(gw string) string {
-	switch gw {
-	case ingress:
-		return r.Config.Spec.Gateways.IngressConfig.LoadBalancerIP
-	case egress:
-		return r.Config.Spec.Gateways.EgressConfig.LoadBalancerIP
+	if config, ok := r.Config.Spec.Gateways.Configs[gw]; ok {
+		return config.LoadBalancerIP
 	}
 	return ""
 }

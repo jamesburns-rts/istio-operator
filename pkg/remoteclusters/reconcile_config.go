@@ -67,7 +67,7 @@ func (c *Cluster) reconcileConfig(remoteConfig *istiov1beta1.RemoteIstio, istio 
 	}
 
 	if util.PointerToBool(istioConfig.Spec.MeshExpansion) {
-		istioConfig.Spec.Gateways.IngressConfig.Enabled = util.BoolPointer(true)
+		istioConfig.Spec.Gateways.Configs["ingress"].Enabled = util.BoolPointer(true)
 		istioConfig.Spec.SetNetworkName(remoteConfig.Name)
 	}
 
